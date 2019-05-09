@@ -11,13 +11,38 @@ msg = Printer()
 
 @plac.annotations(
     path=("File or dir to clean", "positional", None, str),
-    py=("Apply to .py source", "option", None, bool),
-    ipynb=("Apply to .ipynb source", "option", None, bool),
-    autoflake=("Apply autoflake to source", "option", None, bool),
-    isort=("Apply isort to source", "option", None, bool),
-    black=("Apply black to source", "option", None, bool),
+    no_py=("Do not apply to .py source", "flag"),
+    no_ipynb=("Do not apply to .ipynb source", "flag"),
+    no_autoflake=("Do not apply autoflake to source", "flag"),
+    no_isort=("Do not apply isort to source", "flag"),
+    no_black=("Do not apply black to source", "flag"),
+    no_clear_output=("Do not clear jupyter notebook output", "flag"),
 )
-def main(path, py=True, ipynb=True, autoflake=True, isort=True, black=True):
+def main(
+    path,
+    no_py=False,
+    no_ipynb=False,
+    no_autoflake=False,
+    no_isort=False,
+    no_black=False,
+    no_clear_output=False,
+):
+    if no_py and no_ipynb:
+        raise ValueError(
+            "Processing of both Python and Jupyter notebook files disabled."
+        )
+    if no_autoflake and no_isort and no_black and no_clear_output:
+        raise ValueError(
+            "All processing disabled. Remove one or more flags to permit processing."
+        )
+
+    py = not no_py
+    ipynb = not no_ipynb
+    autoflake = not no_autoflake
+    isort = not no_isort
+    black = not no_black
+    clear_output = not no_clear_output
+
     path = Path(path)
     if not path.exists():
         raise ValueError("Provide a valid path to a file or directory")
@@ -37,7 +62,7 @@ def main(path, py=True, ipynb=True, autoflake=True, isort=True, black=True):
             for e in glob.iglob(path.as_posix() + "/**/*.ipynb", recursive=True):
                 try:
                     msg.info(f"Cleaning file: {e}")
-                    clean_ipynb(e, autoflake, isort, black)
+                    clean_ipynb(e, clear_output, autoflake, isort, black)
                 except:
                     msg.fail(f"Unable to clean file: {e}")
 
@@ -52,7 +77,7 @@ def main(path, py=True, ipynb=True, autoflake=True, isort=True, black=True):
             clean_py(path, autoflake, isort, black)
 
         if ipynb and path.suffix == ".ipynb":
-            clean_ipynb(path, autoflake, isort, black)
+            clean_ipynb(path, clear_output, autoflake, isort, black)
 
 
 def main_wrapper():
