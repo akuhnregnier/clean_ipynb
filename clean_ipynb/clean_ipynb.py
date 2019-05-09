@@ -112,4 +112,4 @@ def clean_py(py_file_path, autoflake=True, isort=True, black=True):
         source = file.read()
 
     clean_lines = clean_python_code("".join(source))
-    create_file(Path(py_file_path), clean_lines)
+    create_file(Path(py_file_path), clean_lines + "\n")
