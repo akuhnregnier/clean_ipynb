@@ -16,7 +16,7 @@ msg = Printer()
     no_autoflake=("Do not apply autoflake to source", "flag"),
     no_isort=("Do not apply isort to source", "flag"),
     no_black=("Do not apply black to source", "flag"),
-    no_clear_output=("Do not clear jupyter notebook output", "flag"),
+    keep_output=("Do not clear jupyter notebook output", "flag"),
 )
 def main(
     path,
@@ -25,13 +25,13 @@ def main(
     no_autoflake=False,
     no_isort=False,
     no_black=False,
-    no_clear_output=False,
+    keep_output=False,
 ):
     if no_py and no_ipynb:
         raise ValueError(
             "Processing of both Python and Jupyter notebook files disabled."
         )
-    if no_autoflake and no_isort and no_black and no_clear_output:
+    if no_autoflake and no_isort and no_black and keep_output:
         raise ValueError(
             "All processing disabled. Remove one or more flags to permit processing."
         )
@@ -41,7 +41,7 @@ def main(
     autoflake = not no_autoflake
     isort = not no_isort
     black = not no_black
-    clear_output = not no_clear_output
+    clear_output = not keep_output
 
     path = Path(path)
     if not path.exists():

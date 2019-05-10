@@ -1,4 +1,5 @@
 import re
+from functools import partial
 from json import dump, load
 from multiprocessing import cpu_count
 from multiprocessing.dummy import Pool
@@ -6,7 +7,6 @@ from pathlib import Path
 from subprocess import PIPE, Popen, run
 
 from autoflake import fix_code
-from functools import partial
 
 pool = Pool(cpu_count())
 
