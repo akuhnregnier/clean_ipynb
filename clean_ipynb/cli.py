@@ -67,16 +67,16 @@ def main(
                     msg.fail(f"Unable to clean file: {e}")
 
     if path.is_file():
-        msg.info(f"Cleaning file: {path}")
-
         if path.suffix not in [".py", ".ipynb"]:
             # valid extensions
             raise ValueError("Ensure valid .py or .ipynb path is provided")
 
         if py and path.suffix == ".py":
+            msg.info(f"Cleaning file: {path}")
             clean_py(path, autoflake, isort, black)
 
-        if ipynb and path.suffix == ".ipynb":
+        elif ipynb and path.suffix == ".ipynb":
+            msg.info(f"Cleaning file: {path}")
             clean_ipynb(path, clear_output, autoflake, isort, black)
 
 
