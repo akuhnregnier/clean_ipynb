@@ -98,7 +98,7 @@ def clean_ipynb(
     clean_cell_with_options = partial(
         clean_ipynb_cell, isort=isort, black=black, autoflake=autoflake
     )
-    # mulithread the map operation
+    # multithread the map operation
     processed_cells = pool.map(clean_cell_with_options, ipynb_dict["cells"])
     ipynb_dict["cells"] = processed_cells
 
