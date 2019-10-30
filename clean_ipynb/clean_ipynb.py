@@ -7,7 +7,7 @@ from pathlib import Path
 from subprocess import run
 
 from autoflake import fix_code
-from black import FileMode, format_file_contents
+from black import FileMode, NothingChanged, format_file_contents
 from isort import SortImports
 
 pool = Pool(cpu_count())
@@ -32,7 +32,10 @@ def clean_python_code(python_code, isort=True, black=True, autoflake=True):
         python_code = SortImports(file_contents=python_code).output
 
     if black:
-        python_code = format_file_contents(python_code, fast=False, mode=FileMode())
+        try:
+            python_code = format_file_contents(python_code, fast=False, mode=FileMode())
+        except NothingChanged:
+            pass
 
     # restore ipython %magic
     cleaned_code = re.sub("^##%##", "%", python_code, flags=re.M)
