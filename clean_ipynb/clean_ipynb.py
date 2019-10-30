@@ -4,9 +4,11 @@ from json import dump, load
 from multiprocessing import cpu_count
 from multiprocessing.dummy import Pool
 from pathlib import Path
-from subprocess import PIPE, Popen, run
+from subprocess import run
 
 from autoflake import fix_code
+from black import FileMode, format_file_contents
+from isort import SortImports
 
 pool = Pool(cpu_count())
 
@@ -26,31 +28,14 @@ def clean_python_code(python_code, isort=True, black=True, autoflake=True):
             remove_unused_variables=True,
         )
 
-    pipe = Popen(
-        ("echo", python_code), stdout=PIPE, stderr=PIPE, universal_newlines=True
-    )
-
     if isort:
-        pipe = Popen(
-            ("isort", "-"),
-            stdin=pipe.stdout,
-            stdout=PIPE,
-            stderr=PIPE,
-            universal_newlines=True,
-        )
+        python_code = SortImports(file_contents=python_code).output
 
     if black:
-        pipe = Popen(
-            ("black", "-"),
-            stdin=pipe.stdout,
-            stdout=PIPE,
-            stderr=PIPE,
-            universal_newlines=True,
-        )
+        python_code = format_file_contents(python_code, fast=False, mode=FileMode())
 
-    cleaned_code = pipe.communicate()[0].strip()
     # restore ipython %magic
-    cleaned_code = re.sub("^##%##", "%", cleaned_code, flags=re.M)
+    cleaned_code = re.sub("^##%##", "%", python_code, flags=re.M)
     return cleaned_code
 
 
