@@ -63,9 +63,15 @@ def clean_ipynb_cell(cell_dict, autoflake=True, isort=True, black=True):
             "".join(cell_dict["source"]), isort=isort, black=black, autoflake=autoflake
         ).split("\n")
 
+        # The above cleaning may produce a trailing newline which will then get
+        # transformed to an empty string element in the line list.
+        if clean_lines[-1] == "":
+            clean_lines = clean_lines[:-1]
+
         if len(clean_lines) == 1 and clean_lines[0] == "":
             clean_lines = []
         else:
+            # All but the last lines have a trailing newline character.
             clean_lines[:-1] = [clean_line + "\n" for clean_line in clean_lines[:-1]]
         cell_dict["source"] = clean_lines
         return cell_dict
@@ -108,4 +114,4 @@ def clean_py(py_file_path, autoflake=True, isort=True, black=True):
     clean_lines = clean_python_code(
         "".join(source), isort=isort, black=black, autoflake=autoflake
     )
-    create_file(Path(py_file_path), clean_lines + "\n")
+    create_file(Path(py_file_path), clean_lines)
