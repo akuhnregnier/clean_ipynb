@@ -105,3 +105,12 @@ venv.bak/
 
 # mypy
 .mypy_cache/
+
+# Package version.
+_version.py
+
+# Pre-commit configuration file.
+.pre-commit-config.yaml
+
+# Git attributes.
+.gitattributes

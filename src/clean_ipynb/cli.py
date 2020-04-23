@@ -1,10 +1,11 @@
+# -*- coding: utf-8 -*-
 import argparse
 import glob
 from pathlib import Path
 
 from wasabi import Printer
 
-from . import VERSION
+from . import __version__
 from .clean_ipynb import clean_ipynb, clean_py
 
 msg = Printer()
@@ -84,7 +85,7 @@ def main_wrapper():
         "--version",
         help=f"Show the %(prog)s version number",
         action="version",
-        version=f"%(prog)s {VERSION}",
+        version=f"%(prog)s {__version__}",
     )
     args = parser.parse_args()
 
