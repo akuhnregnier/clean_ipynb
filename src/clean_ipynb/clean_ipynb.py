@@ -9,7 +9,7 @@ from subprocess import run
 
 from autoflake import fix_code
 from black import FileMode, NothingChanged, format_file_contents
-from isort import SortImports
+from isort import code
 
 pool = Pool(cpu_count())
 
@@ -30,7 +30,7 @@ def clean_python_code(python_code, isort=True, black=True, autoflake=True):
         )
 
     if isort:
-        python_code = SortImports(file_contents=python_code).output
+        python_code = code(python_code)
 
     if black:
         try:
