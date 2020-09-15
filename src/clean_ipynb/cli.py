@@ -3,6 +3,7 @@ import argparse
 import glob
 from pathlib import Path
 
+import isort.exceptions as isort_exceptions
 from wasabi import Printer
 
 from . import __version__
@@ -44,7 +45,10 @@ def main(
 
         if py and path.suffix == ".py":
             msg.info(f"Cleaning file: {path}")
-            clean_py(path, autoflake, isort, black)
+            try:
+                clean_py(path, autoflake, isort, black)
+            except isort_exceptions.FileSkipComment as exception:
+                msg.fail(f"Did not clean file: '{path}', due to:\n{exception}.")
 
         elif ipynb and path.suffix == ".ipynb":
             msg.info(f"Cleaning file: {path}")
