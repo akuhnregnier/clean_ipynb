@@ -11,11 +11,17 @@ from autoflake import fix_code
 from black import FileMode, NothingChanged, format_file_contents
 from isort import code
 
-pool = Pool(cpu_count())
+__all__ = (
+    "clean_ipynb",
+    "clean_ipynb_cell",
+    "clean_py",
+    "clean_python_code",
+    "clear_ipynb_output",
+)
 
 
 def clean_python_code(python_code, isort=True, black=True, autoflake=True):
-    # temporarily comment out ipython %magic to avoid black errors
+    """Temporarily comment out IPython %magic to avoid Black errors."""
     python_code = re.sub("^%", "##%##", python_code, flags=re.M)
 
     # run source code string through autoflake, isort, and black
@@ -44,7 +50,7 @@ def clean_python_code(python_code, isort=True, black=True, autoflake=True):
 
 
 def clear_ipynb_output(ipynb_file_path):
-    # clear cell outputs, reset cell execution count of each cell in a jupyer notebook
+    """Clear cell outputs, reset cell execution counts of Jupyter notebook."""
     run(
         (
             "jupyter",
@@ -58,7 +64,7 @@ def clear_ipynb_output(ipynb_file_path):
 
 
 def clean_ipynb_cell(cell_dict, autoflake=True, isort=True, black=True):
-    # clean a single cell within a jupyter notebook
+    """Clean a single cell within a Jupyter notebook."""
     if cell_dict["cell_type"] == "code":
         clean_lines = clean_python_code(
             "".join(cell_dict["source"]), isort=isort, black=black, autoflake=autoflake
@@ -81,9 +87,22 @@ def clean_ipynb_cell(cell_dict, autoflake=True, isort=True, black=True):
 
 
 def clean_ipynb(
-    ipynb_file_path, clear_output=True, autoflake=True, isort=True, black=True
+    ipynb_file_path,
+    clear_output=True,
+    autoflake=True,
+    isort=True,
+    black=True,
+    n_jobs=1,
 ):
-    # load, clean and write .ipynb source in-place, back to original file
+    """Load, clean and write .ipynb source in-place, back to original file.
+
+    Raises:
+        ValueError: If `n_jobs` is 0.
+
+    """
+    if n_jobs == 0:
+        raise ValueError("'n_jobs' cannot be 0.")
+
     if clear_output:
         clear_ipynb_output(ipynb_file_path)
 
@@ -93,8 +112,9 @@ def clean_ipynb(
     clean_cell_with_options = partial(
         clean_ipynb_cell, isort=isort, black=black, autoflake=autoflake
     )
-    # multithread the map operation
-    processed_cells = pool.map(clean_cell_with_options, ipynb_dict["cells"])
+    # Multithread the map operation.
+    n_jobs = n_jobs if n_jobs > 0 else (cpu_count() + 1 + n_jobs)
+    processed_cells = Pool(n_jobs).map(clean_cell_with_options, ipynb_dict["cells"])
     ipynb_dict["cells"] = processed_cells
 
     with open(ipynb_file_path, "w") as ipynb_file:
@@ -108,7 +128,7 @@ def create_file(file_path, contents):
 
 
 def clean_py(py_file_path, autoflake=True, isort=True, black=True):
-    # load, clean and write .py source, write cleaned file back to disk
+    """Load, clean and write .py source, write cleaned file back to disk."""
     with open(py_file_path, "r") as file:
         source = file.read()
 

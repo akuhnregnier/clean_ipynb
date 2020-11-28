@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+"""CLI interface to clean_ipynb."""
 import argparse
 import glob
 from pathlib import Path
@@ -13,7 +14,14 @@ msg = Printer()
 
 
 def main(
-    path, py=True, ipynb=True, autoflake=True, isort=True, black=True, clear_output=True
+    path,
+    py=True,
+    ipynb=True,
+    autoflake=True,
+    isort=True,
+    black=True,
+    clear_output=True,
+    n_jobs=1,
 ):
     path = Path(path)
     if not path.exists():
@@ -34,7 +42,7 @@ def main(
             for e in glob.iglob(path.as_posix() + "/**/*.ipynb", recursive=True):
                 try:
                     msg.info(f"Cleaning file: {e}")
-                    clean_ipynb(e, clear_output, autoflake, isort, black)
+                    clean_ipynb(e, clear_output, autoflake, isort, black, n_jobs)
                 except:
                     msg.fail(f"Unable to clean file: {e}")
 
@@ -52,16 +60,20 @@ def main(
 
         elif ipynb and path.suffix == ".ipynb":
             msg.info(f"Cleaning file: {path}")
-            clean_ipynb(path, clear_output, autoflake, isort, black)
+            clean_ipynb(path, clear_output, autoflake, isort, black, n_jobs)
 
 
 def main_wrapper():
     parser = argparse.ArgumentParser(
         description=(
-            "Tidy and remove redundant imports (via autoflake), sort imports (via "
-            "isort), lint and standardize (via black). Apply equally to entire .py or "
-            ".ipynb files, or directories containing such files. Additionally, clear "
-            "all .ipynb cell outputs and execution counts (squeeze those diffs!)."
+            """
+Tidy and remove redundant imports (via autoflake), sort imports (via isort), lint and
+standardize (via black). Apply equally to entire .py or .ipynb files, or directories
+containing such files. Additionally, clear all .ipynb cell outputs and execution
+counts (squeeze those diffs!). Cleaning of Jupyter notebook cells can be carried out
+using multiple threads using '--n-jobs N_JOBS', where a positive integer specifies the
+maximum number of threads to use. Giving '-1' matches the number of available cores,
+'-2' results in one less, etc... By default, only a single thread is used.""".strip()
         )
     )
     parser.add_argument("path", nargs="+", help="File(s) or dir(s) to clean")
@@ -77,6 +89,9 @@ def main_wrapper():
     )
     parser.add_argument(
         "-b", "--no-black", help="Do not apply black", action="store_true"
+    )
+    parser.add_argument(
+        "-j", "--n-jobs", help="Number of threads to use", type=int, default=1
     )
     parser.add_argument(
         "-o",
@@ -111,4 +126,5 @@ def main_wrapper():
             isort=not args.no_isort,
             black=not args.no_black,
             clear_output=not args.keep_output,
+            n_jobs=args.n_jobs,
         )
