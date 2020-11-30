@@ -47,7 +47,4 @@ clean_ipynb --help
 
 ### Todo
 * **Unit tests.** Null parameter, invalid parameter edge cases etc.
-* **Reimplement sub-command arg parsing.** Parse specific black/autoflake/isort args to main CLI.
-* **Remove subprocess calls.** Reach into subprograms, natively use without subprocess calls.
-* **Autoflake for ipynb sources.** Keep module imports which are only used in other cells. This will require awareness of all code cells at once for the application of autoflake. Current workaround: use the flags `--no-py --no-autoflake` for Jupyter notebooks, and `--no-ipynb` for Python files in two separate calls (using the flags to avoid repeat operations when applied to identical inputs for both sets of flags).
 * **Read from standard input and write to standard output.** Exhibit behaviour analogous to other tools such as [black](https://github.com/ambv/black) which do this if `-` is used as a filename.

@@ -1,3 +1,4 @@
+exclude: fixtures/*
 fail_fast: true
 minimum_pre_commit_version: '1.16.1'
 repos:
@@ -35,9 +36,9 @@ repos:
             language: system
             files: \.py$
             exclude: \__init__.py$
-            # - id: pytest
-            #   name: pytest
-            #   entry: pytest -v -rs -m "not slow" --ignore-glob='joblib/**/func_code.py'
-            #   pass_filenames: false
-            #   language: system
-            #   verbose: true
+          - id: pytest
+            name: pytest
+            entry: pytest -v -rs -m "not slow" --ignore-glob='joblib/**/func_code.py'
+            pass_filenames: false
+            language: system
+            verbose: true

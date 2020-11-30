@@ -1,8 +1,11 @@
 # -*- coding: utf-8 -*-
 """CLI interface to clean_ipynb."""
 import argparse
-import glob
+from concurrent.futures import ThreadPoolExecutor
+from functools import partial
+from multiprocessing import cpu_count
 from pathlib import Path
+from threading import Lock
 
 import isort.exceptions as isort_exceptions
 from wasabi import Printer
@@ -11,6 +14,12 @@ from . import __version__
 from .clean_ipynb import clean_ipynb, clean_py
 
 msg = Printer()
+print_lock = Lock()
+
+
+def msg_print(cat, text):
+    with print_lock:
+        getattr(msg, cat)(text)
 
 
 def main(
@@ -20,47 +29,26 @@ def main(
     autoflake=True,
     isort=True,
     black=True,
-    clear_output=True,
-    n_jobs=1,
+    keep_output=False,
 ):
     path = Path(path)
-    if not path.exists():
-        raise ValueError("Provide a valid path to a file or directory")
+    if not path.is_file():
+        raise ValueError("Provide a valid path to a file")
 
-    if path.is_dir():
-        # recursively apply to all .py source within dir
-        msg.info(f"Recursively cleaning directory: {path}")
-        if py:
-            for e in glob.iglob(path.as_posix() + "/**/*.py", recursive=True):
-                try:
-                    msg.info(f"Cleaning file: {e}")
-                    clean_py(e, autoflake, isort, black)
-                except:
-                    msg.fail(f"Unable to clean file: {e}")
-        if ipynb:
-            # recursively apply to all .ipynb source within dir
-            for e in glob.iglob(path.as_posix() + "/**/*.ipynb", recursive=True):
-                try:
-                    msg.info(f"Cleaning file: {e}")
-                    clean_ipynb(e, clear_output, autoflake, isort, black, n_jobs)
-                except:
-                    msg.fail(f"Unable to clean file: {e}")
+    if path.suffix not in [".py", ".ipynb"]:
+        # valid extensions
+        raise ValueError("Ensure valid .py or .ipynb path is provided")
 
-    elif path.is_file():
-        if path.suffix not in [".py", ".ipynb"]:
-            # valid extensions
-            raise ValueError("Ensure valid .py or .ipynb path is provided")
+    if py and path.suffix == ".py":
+        msg_print("info", f"Cleaning file: {path}")
+        try:
+            clean_py(path, autoflake, isort, black)
+        except isort_exceptions.FileSkipComment as exception:
+            msg_print("fail", f"Did not clean file: '{path}', due to:\n{exception}.")
 
-        if py and path.suffix == ".py":
-            msg.info(f"Cleaning file: {path}")
-            try:
-                clean_py(path, autoflake, isort, black)
-            except isort_exceptions.FileSkipComment as exception:
-                msg.fail(f"Did not clean file: '{path}', due to:\n{exception}.")
-
-        elif ipynb and path.suffix == ".ipynb":
-            msg.info(f"Cleaning file: {path}")
-            clean_ipynb(path, clear_output, autoflake, isort, black, n_jobs)
+    elif ipynb and path.suffix == ".ipynb":
+        msg_print("info", f"Cleaning file: {path}")
+        clean_ipynb(path, keep_output, autoflake, isort, black)
 
 
 def main_wrapper():
@@ -70,10 +58,10 @@ def main_wrapper():
 Tidy and remove redundant imports (via autoflake), sort imports (via isort), lint and
 standardize (via black). Apply equally to entire .py or .ipynb files, or directories
 containing such files. Additionally, clear all .ipynb cell outputs and execution
-counts (squeeze those diffs!). Cleaning of Jupyter notebook cells can be carried out
-using multiple threads using '--n-jobs N_JOBS', where a positive integer specifies the
-maximum number of threads to use. Giving '-1' matches the number of available cores,
-'-2' results in one less, etc... By default, only a single thread is used.""".strip()
+counts (squeeze those diffs!). Cleaning can be carried out using multiple threads with
+'--n-jobs N_JOBS', where a positive integer specifies the maximum number of threads to
+use. Giving '-1' matches the number of available cores, '-2' results in one less,
+etc... By default, only a single thread is used.""".strip()
         )
     )
     parser.add_argument("path", nargs="+", help="File(s) or dir(s) to clean")
@@ -117,14 +105,36 @@ maximum number of threads to use. Giving '-1' matches the number of available co
             "All processing disabled. Remove one or more flags to permit processing."
         )
 
-    for path in args.path:
-        main(
-            path,
-            py=not args.no_py,
-            ipynb=not args.no_ipynb,
-            autoflake=not args.no_autoflake,
-            isort=not args.no_isort,
-            black=not args.no_black,
-            clear_output=not args.keep_output,
-            n_jobs=args.n_jobs,
+    def path_iter():
+        for path in map(Path, args.path):
+            if path.is_dir():
+                msg_print("info", f"Recursively cleaning directory: {path}")
+                if not args.no_py:
+                    # Recursively apply to all .py source within dir.
+                    for match in path.rglob("*.py"):
+                        yield match
+                if not args.no_ipynb:
+                    # Recursively apply to all .ipynb source within dir.
+                    for match in path.rglob("*.ipynb"):
+                        yield match
+            else:
+                yield path
+
+    n_jobs = args.n_jobs if args.n_jobs > 0 else (cpu_count() + 1 + args.n_jobs)
+
+    with ThreadPoolExecutor(max_workers=n_jobs) as executor:
+        # `list()` is required to know about Exceptions.
+        list(
+            executor.map(
+                partial(
+                    main,
+                    py=not args.no_py,
+                    ipynb=not args.no_ipynb,
+                    autoflake=not args.no_autoflake,
+                    isort=not args.no_isort,
+                    black=not args.no_black,
+                    keep_output=args.keep_output,
+                ),
+                path_iter(),
+            )
         )
