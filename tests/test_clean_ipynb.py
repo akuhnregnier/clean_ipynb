@@ -2,7 +2,7 @@
 import shutil
 from pathlib import Path
 from subprocess import run
-from tempfile import NamedTemporaryFile
+from tempfile import TemporaryDirectory
 
 import pytest
 
@@ -29,10 +29,15 @@ def test_expected(filetype, mode, keep_output, raw, known_good):
     raw_file = fixture_dir / raw
 
     # Use a temporary file to contain the cleaned notebook.
-    with NamedTemporaryFile(suffix=raw_file.suffix) as temp_cleaned_file:
-        temp_clean_filename = temp_cleaned_file.name
+    # with NamedTemporaryFile(suffix=raw_file.suffix) as temp_cleaned_file:
+    # temp_clean_filename = temp_cleaned_file.name
+    with TemporaryDirectory(suffix="clean_ipynb") as temp_dir:
+        temp_clean_filename = Path(temp_dir) / raw
         # Copy the original 'dirty' notebook for later in-place cleaning.
         shutil.copy(raw_file, temp_clean_filename)
+        # Record the initial number of files in the directory.
+        orig_n_files = len(list(Path(temp_dir).iterdir()))
+
         # Clean the notebook.
         if mode == "module":
             if raw_file.suffix == ".ipynb":
@@ -55,6 +60,10 @@ def test_expected(filetype, mode, keep_output, raw, known_good):
         # Read the contents of the cleaned notebook.
         with open(temp_clean_filename) as f:
             cleaned = f.read()
+
+        # Ensure that no temporary files are left over.
+        new_n_files = len(list(Path(temp_dir).iterdir()))
+        assert new_n_files == orig_n_files
 
     # Compare the known good notebook to the above.
     with open(fixture_dir / known_good) as f:

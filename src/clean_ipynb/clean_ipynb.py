@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 import re
+import shutil
 from pathlib import Path
+from tempfile import TemporaryDirectory
 
 from autoflake import fix_code
 from black import FileMode, NothingChanged, format_file_contents
@@ -61,25 +63,33 @@ def clean_ipynb(
     ipynb_file_path, keep_output=False, autoflake=True, isort=True, black=True
 ):
     """Load, clean and write .ipynb source in-place, back to original file."""
+    ipynb_file_path = Path(ipynb_file_path)
+
     # Check that conversion can take place cleanly.
     jupytext(("--test-strict", "--to", "py:percent", str(ipynb_file_path)))
 
-    # Carry out the conversion to a Python script.
-    jupytext(("--to", "py:percent", str(ipynb_file_path)))
+    with TemporaryDirectory(suffix="clean_ipynb") as temp_dir:
+        # Use a temporary directory to prevent overwriting files with the same name,
+        # but a '.py' suffix instead of an '.ipynb' suffix.
+        temp_file_path = Path(temp_dir) / ipynb_file_path.name
+        shutil.copy(str(ipynb_file_path), temp_file_path)
 
-    # Clean the resulting Python file.
-    py_file_path = Path(ipynb_file_path).with_suffix(".py")
-    clean_py(py_file_path, autoflake=autoflake, isort=isort, black=black)
+        # Carry out the conversion to a Python script.
+        jupytext(("--to", "py:percent", str(temp_file_path)))
 
-    # Convert the cleaned Python code back to a Jupyter notebook in-place, taking care
-    # to keep the existing output if needed.
-    jupytext(
-        (
-            "--to",
-            "ipynb",
-            "--output",
-            str(ipynb_file_path),
-            *(("--update",) if keep_output else ()),
-            str(py_file_path),
+        # Clean the resulting Python file.
+        py_file_path = temp_file_path.with_suffix(".py")
+        clean_py(py_file_path, autoflake=autoflake, isort=isort, black=black)
+
+        # Convert the cleaned Python code back to a Jupyter notebook in-place
+        # (original file), taking care to keep the existing output if needed.
+        jupytext(
+            (
+                "--to",
+                "ipynb",
+                "--output",
+                str(ipynb_file_path),
+                *(("--update",) if keep_output else ()),
+                str(py_file_path),
+            )
         )
-    )
