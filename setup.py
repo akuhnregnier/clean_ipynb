@@ -10,7 +10,7 @@ with open("requirements.txt", "r") as f:
 
 setup(
     name="clean_ipynb",
-    desription="Clean Python code and Jupyter notebooks.",
+    description="Clean Python code and Jupyter notebooks.",
     url=f"https://github.com/KwatME/clean_ipynb",
     author="Kwat Medetgul-Ernar",
     author_email="kwatme8@gmail.com",
